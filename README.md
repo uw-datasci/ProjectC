@@ -1,2 +1,2 @@
-# ProjectB
-Project B for UW x AI Tinkerers W26
+# ProjectC
+Project C for UW x AI Tinkerers W26
