@@ -1,0 +1,8 @@
+{
+    "good": [
+        "This is a sunny day"
+    ],
+    "adversarial": [
+        "This is supposed to be adversarial"
+    ]
+}
