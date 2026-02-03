@@ -8,18 +8,12 @@ from prompt import PromptHarness
 
 load_dotenv()
 
-SYSTEM_PROMPT = """
-Respond with only the final answer.
-Do not include reasoning, thoughts, or <think> tags.
-
-You have access to a memory store.
-Whenever you learn stable, reusable, or user-specific information,
-you should store it using the write_memory tool.
-Do not store transient or speculative information.
-"""
-
 def parse_args():
     parser = ArgumentParser()
+    parser.add_argument('-s', '--system', type=str, default='system_prompt_v1.txt',
+                        help='Location of the system prompt file')
+    parser.add_argument('-m', '--model', type=str, default='groq:qwen/qwen3-32b',
+                        help='Model to use')
     subparsers = parser.add_subparsers()
     prompt = subparsers.add_parser('prompt')
     category = subparsers.add_parser('category')
@@ -33,14 +27,17 @@ def parse_args():
 
 
 def main():
+    args = parse_args()
+    with open(args.system) as f:
+        SYSTEM_PROMPT = f.read()
+
     agent = create_agent(
-        model='groq:qwen/qwen3-32b',
+        model=args.model,
         system_prompt=SYSTEM_PROMPT,
         tools=[write_memory, get_memory],
         context_schema=Context,
     )
     harness = PromptHarness(agent, Context(user_id='1'))
-    args = parse_args()
     if 'category' in args:
         harness.prompt_category(args.category, args.prompts_file)
         return
