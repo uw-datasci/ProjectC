@@ -1,4 +1,5 @@
-from langgraph.graph.state import CompiledStateGraph
+from argparse import ArgumentParser
+
 from langchain.agents import create_agent
 from dotenv import load_dotenv
 
@@ -17,6 +18,18 @@ you should store it using the write_memory tool.
 Do not store transient or speculative information.
 """
 
+def parse_args():
+    parser = ArgumentParser()
+    subparsers = parser.add_subparsers()
+    prompt = subparsers.add_parser('prompt')
+    category = subparsers.add_parser('category')
+    prompt.add_argument('prompt', type=str,
+                        help='Prompt to send to the agent')
+    category.add_argument('category', type=str,
+                        help='Category of prompts to use')
+    category.add_argument('prompts_file', type=str,
+                        help='JSON file containing prompts for category')
+    return parser.parse_args()
 
 
 def main():
@@ -27,24 +40,23 @@ def main():
         context_schema=Context,
     )
     harness = PromptHarness(agent, Context(user_id='1'))
+    args = parse_args()
+    if 'category' in args:
+        harness.prompt_category(args.category, args.prompts_file)
+        return
+    elif 'prompt' in args:
+        harness.prompt(args.prompt)
+        return
     while True:
         try:
-            inp = input('Enter prompt:')
+            inp = input('Enter prompt: ')
             if inp == '-c quit':
                 break
-            elif inp == '-c good':
-                harness.prompt_category('good', 'src/prompts.json')
-            elif inp == '-c adversarial':
-                harness.prompt_category('adversarial', 'src/prompts.json')
             else:
                 harness.prompt(inp)
         except EOFError, KeyboardInterrupt:
             print('\nThank you for chatting with our Therapy-LLM!')
             return
-        response = harness.prompt(inp)
-
-        ai_response = harness.extract_response_content(response)
-        ai_response.pretty_print()
 
 if __name__ == '__main__':
     main()
