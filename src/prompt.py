@@ -18,7 +18,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class PromptHarness:
-    def __init__(self, agent: CompiledStateGraph, ctx: Context, max_retries: int = 3):
+    def __init__(self, agent: CompiledStateGraph, ctx: Context, max_retries: int = 3,
+                keep_history: bool = True):
         self.agent = agent
         self.ctx = ctx
         self.max_retries = max_retries
@@ -29,12 +30,15 @@ class PromptHarness:
             'prompts_sent': 0,
             'errors': 0
         }
+        self.keep_history = keep_history
         logger.info(f'PromptHarness initialized with session_id: {self.metadata['session_id']}') 
 
     def prompt(self, inp: str) -> Optional[Dict[Any, Any]]:
         self.metadata['prompts_sent'] += 1
         logger.info(f'Prompt #{self.metadata['prompts_sent']}: {inp}')
         
+        if not self.keep_history:
+            self.history.clear()
         self.history.append(inp)
         
         for attempt in range(self.max_retries):
