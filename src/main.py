@@ -51,7 +51,7 @@ def main():
                 break
             else:
                 harness.prompt(inp)
-        except EOFError, KeyboardInterrupt:
+        except (EOFError, KeyboardInterrupt):
             print('\nThank you for chatting with our Therapy-LLM!')
             return
 
