@@ -60,6 +60,11 @@ class PromptHarness:
         return None 
 
     def extract_response_content(self, response: dict):
+        if 'messages' not in response or not response['messages']
+            or len(response['messages']) == 0:
+            logger.error('No messages in response')
+            logger.debug(f'Response: {response}')
+            raise ValueError('No messages in response')
         return response['messages'][-1].content
 
     def prompt_category(self, category: str, file_name: str):

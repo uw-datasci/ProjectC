@@ -14,7 +14,7 @@ def parse_args():
                         help='Location of the system prompt file')
     parser.add_argument('-m', '--model', type=str, default='groq:qwen/qwen3-32b',
                         help='Model to use')
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(dest='command')
     prompt = subparsers.add_parser('prompt')
     category = subparsers.add_parser('category')
     prompt.add_argument('prompt', type=str,
@@ -38,10 +38,10 @@ def main():
         context_schema=Context,
     )
     harness = PromptHarness(agent, Context(user_id='1'))
-    if 'category' in args:
+    if args.command == 'category':
         harness.prompt_category(args.category, args.prompts_file)
         return
-    elif 'prompt' in args:
+    elif args.command == 'prompt':
         harness.prompt(args.prompt)
         return
     while True:

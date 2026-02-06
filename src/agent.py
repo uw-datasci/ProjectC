@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 import json
+from pathlib import Path
 
 from langchain.tools import ToolRuntime, tool
 
-JSON_PATH = 'src/memory.json'
+JSON_PATH = Path(__file__).parent.parent / 'data' / 'memory.json'
 
 
 @dataclass
@@ -27,7 +28,7 @@ def write_memory(runtime: ToolRuntime[Context], memory_entry: tuple[str, str]):
 
 
 @tool
-def get_memory(runtime: ToolRuntime[Context], memory_key: str) -> list[str]:
+def get_memory(runtime: ToolRuntime[Context], memory_key: str) -> str:
     """Retrieves a memory entry for the user from a json file."""
     with open(JSON_PATH, 'r') as f:
         current_memory = json.load(f)
