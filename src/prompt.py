@@ -39,6 +39,7 @@ class PromptHarness:
         
         if not self.keep_history:
             self.history.clear()
+        logger.info(f'History saving is set to: {self.keep_history}')
         self.history.append(inp)
         
         for attempt in range(self.max_retries):
@@ -60,8 +61,8 @@ class PromptHarness:
         return None 
 
     def extract_response_content(self, response: dict):
-        if 'messages' not in response or not response['messages']
-            or len(response['messages']) == 0:
+        if 'messages' not in response or not response['messages'] or \
+            len(response['messages']) == 0:
             logger.error('No messages in response')
             logger.debug(f'Response: {response}')
             raise ValueError('No messages in response')
@@ -85,10 +86,13 @@ class PromptHarness:
             return []
         
         responses = []
-        for i, prompt in enumerate(prompts, 1):
+        for i, prompt_obj in enumerate(prompts, 1):
+            prompt_texts = prompt_obj['prompt']
             logger.info(f'Processing prompt {i}/{len(prompts)} in category "{category}"')
-            response = self.prompt(prompt)
-            responses.append(response)
+            self.keep_history = len(prompt_texts) > 1
+            for prompt_text in prompt_texts:
+                response = self.prompt(prompt_text)
+                responses.append(response)
         
         logger.info(f'Category "{category}" completed: {len(responses)} responses')
         return responses
