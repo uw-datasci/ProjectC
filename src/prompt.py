@@ -57,6 +57,7 @@ class PromptHarness:
         
             if not self.keep_history:
                 self.history.clear()
+            self.keep_history = len(prompt_texts) > 1
             logger.info(f'History saving is set to: {self.keep_history}')
             self.history.append(prompt_text)
         
