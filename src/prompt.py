@@ -102,8 +102,8 @@ class PromptHarness:
         logger.info(f'Starting category: {category} from {file_name}')
         
         try:
-            with open(file_name, 'r') as f:
-                prompt_json_schema = PromptJSONSchema(**json.load(f))
+            with open(file_name, 'r', encoding='utf-8') as f:
+                prompt_json_schema = PromptJSONSchema(**json.load(f, encoding='utf-8'))
                 prompts = list(map(lambda x: PromptSchema(**x), getattr(prompt_json_schema, category)))
         except FileNotFoundError:
             logger.error(f'Prompt file not found: {file_name}')
@@ -136,15 +136,15 @@ class ResponseJSONLogger:
         self._init_response_json()
 
     def _init_response_json(self):
-        with open(self.file_name, 'w') as f:
+        with open(self.file_name, 'w', encoding='utf-8') as f:
             json.dump(ResponseJSONSchema([], self.metadata), f,
                       indent=2, default=asdict)
 
     def log_response(self, response: ResponseSchema):
-        with open(self.file_name, 'r') as f:
+        with open(self.file_name, 'r', encoding='utf-8') as f:
             response_json = ResponseJSONSchema(**json.load(f))
         response_json.responses.append(response)
-        with open(self.file_name, 'w') as f:
+        with open(self.file_name, 'w', encoding='utf-8') as f:
             json.dump(response_json, f, indent=2, default=asdict)
 
     def log_responses(self, responses: list[ResponseSchema]):
