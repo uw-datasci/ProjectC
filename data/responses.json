@@ -1,0 +1,10 @@
+{
+  "responses": [],
+  "metadata": {
+    "session_id": "20260206_205333",
+    "start_time": "2026-02-06T20:53:33.649937",
+    "prompts_sent": 0,
+    "errors": 0,
+    "model_name": "groq:qwen/qwen3-32b"
+  }
+}

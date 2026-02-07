@@ -103,7 +103,7 @@ class PromptHarness:
         
         try:
             with open(file_name, 'r', encoding='utf-8') as f:
-                prompt_json_schema = PromptJSONSchema(**json.load(f, encoding='utf-8'))
+                prompt_json_schema = PromptJSONSchema(**json.load(f))
                 prompts = list(map(lambda x: PromptSchema(**x), getattr(prompt_json_schema, category)))
         except FileNotFoundError:
             logger.error(f'Prompt file not found: {file_name}')
