@@ -85,7 +85,7 @@ class PromptHarness:
                         prompt_category=category,
                         timestamp=str(response_time),
                         latency=latency,
-                        response=self.extract_response_content(response),
+                        response=self.extract_response_content(response).encode('utf-8').decode('utf-8'),
                     ))
                 break
         return response 
@@ -138,14 +138,14 @@ class ResponseJSONLogger:
     def _init_response_json(self):
         with open(self.file_name, 'w', encoding='utf-8') as f:
             json.dump(ResponseJSONSchema([], self.metadata), f,
-                      indent=2, default=asdict)
+                      indent=2, default=asdict, ensure_ascii=False)
 
     def log_response(self, response: ResponseSchema):
         with open(self.file_name, 'r', encoding='utf-8') as f:
             response_json = ResponseJSONSchema(**json.load(f))
         response_json.responses.append(response)
         with open(self.file_name, 'w', encoding='utf-8') as f:
-            json.dump(response_json, f, indent=2, default=asdict)
+            json.dump(response_json, f, indent=2, default=asdict, ensure_ascii=False)
 
     def log_responses(self, responses: list[ResponseSchema]):
         for response in responses:
