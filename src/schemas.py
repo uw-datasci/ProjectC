@@ -7,11 +7,6 @@ class PromptSchema:
     id: int
     prompt: list[str]
     expected_behavior: str
-    _counter: ClassVar[int] = 0
-
-    def __post_init__(self):
-        type(self)._counter += 1
-        self.id = type(self)._counter
 
 
 @dataclass
