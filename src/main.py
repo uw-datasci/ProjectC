@@ -37,7 +37,7 @@ def main():
         tools=[write_memory, get_memory],
         context_schema=Context,
     )
-    harness = PromptHarness(agent, Context(user_id='1'))
+    harness = PromptHarness(agent, Context(user_id='1'), model_name=args.model)
     if args.command == 'category':
         harness.prompt_category(args.category, args.prompts_file)
         return
