@@ -4,7 +4,7 @@ import json
 import logging
 import time
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable
 from pathlib import Path
 
 from schemas import ResponseSchema, PromptSchema, PromptJSONSchema, \
@@ -12,6 +12,7 @@ from schemas import ResponseSchema, PromptSchema, PromptJSONSchema, \
 
 from contextvars import Context
 from langgraph.graph.state import CompiledStateGraph
+from model_pool import ModelPool
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,9 +28,13 @@ RESPONSES_DIR = Path(__file__).parent.parent / 'data' / 'responses'
 
 class PromptHarness:
     def __init__(self, agent: CompiledStateGraph, ctx: Context, model_name: str,
-                author: str, max_retries: int = 3, keep_history: bool = True):
+                author: str, pool: ModelPool | None = None,
+                agent_factory: Callable[[str], CompiledStateGraph] | None = None,
+                max_retries: int = 3, keep_history: bool = True):
         self.agent = agent
         self.ctx = ctx
+        self.pool = pool
+        self.agent_factory = agent_factory
         self.max_retries = max_retries
         self.history = []
         session_id = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -45,6 +50,15 @@ class PromptHarness:
         response_path = RESPONSES_DIR / f'{author}_{session_id}.json'
         self.response_logger = ResponseJSONLogger(response_path, self.metadata)
         logger.info(f'PromptHarness initialized with session_id: {session_id}, author: {author}') 
+
+    def _rotate_agent(self):
+        if self.pool and self.agent_factory:
+            new_model = self.pool.rotate()
+            logger.info(f'Recreating agent with model: {new_model}')
+            self.agent = self.agent_factory(new_model)
+            self.metadata.model_name = new_model
+            return True
+        return False
 
     def prompt(self, inp: str | PromptSchema, category: str | None) -> Optional[Dict[Any, Any]]:
         if isinstance(inp, str):
@@ -64,12 +78,23 @@ class PromptHarness:
             logger.info(f'History saving is set to: {self.keep_history}')
             self.history.append(prompt_text)
         
-            for attempt in range(self.max_retries):
+            attempts_left = self.max_retries * max(1, len(self.pool.model_names) if self.pool else 1)
+            while attempts_left > 0:
+                attempts_left -= 1
                 start_time = time.time()
-                response = self.agent.invoke(
-                    {'messages': self.history},
-                    context=self.ctx
-                )
+                try:
+                    response = self.agent.invoke(
+                        {'messages': self.history},
+                        context=self.ctx
+                    )
+                except Exception as e:
+                    error_str = str(e)
+                    is_rate_limit = any(code in error_str.lower() for code in ['429', '413', 'rate_limit', 'too many requests'])
+                    if is_rate_limit and self._rotate_agent():
+                        logger.warning(f'Rate limited, retrying with {self.pool.current}...')
+                        continue
+                    raise
+
                 if response is None:
                     self.metadata.errors += 1
                     logger.error('No response received')

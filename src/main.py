@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from agent import write_memory, get_memory, Context
 from prompt import PromptHarness, merge_responses
 from evaluator import FailureEvaluator
+from model_pool import ModelPool, AGENT_MODELS, EVALUATOR_MODELS
 
 load_dotenv()
 
@@ -14,8 +15,6 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument('-s', '--system', type=str, default='system_prompt_v1.txt',
                         help='Location of the system prompt file')
-    parser.add_argument('-m', '--model', type=str, default='groq:qwen/qwen3-32b',
-                        help='Model to use')
     subparsers = parser.add_subparsers(dest='command')
     prompt = subparsers.add_parser('prompt')
     category = subparsers.add_parser('category')
@@ -33,8 +32,6 @@ def parse_args():
                        help='Path to write the combined responses file')
 
     evaluate = subparsers.add_parser('evaluate')
-    evaluate.add_argument('--eval-model', type=str, default='groq:llama-3.3-70b-versatile',
-                          help='Model to use for evaluation')
     evaluate.add_argument('--responses', type=str, default='data/responses_combined.json',
                           help='Path to responses JSON file')
     evaluate.add_argument('--prompts', type=str, default='data/test_prompts_v1.json',
@@ -54,12 +51,12 @@ def main():
         print(f"Merged {len(combined['responses'])} responses from {len(combined['runs'])} run(s)")
         return
 
-
     if args.command == 'evaluate':
         evaluator = FailureEvaluator(
-            model=args.eval_model,
+            models=EVALUATOR_MODELS,
             taxonomy_path=args.taxonomy,
             prompts_path=args.prompts,
+            temperature=0,
         )
         report = evaluator.evaluate_responses(args.responses, args.output)
         meta = report.metadata
@@ -71,14 +68,25 @@ def main():
     with open(args.system) as f:
         SYSTEM_PROMPT = f.read()
 
-    agent = create_agent(
-        model=args.model,
-        system_prompt=SYSTEM_PROMPT,
-        tools=[write_memory, get_memory],
-        context_schema=Context,
-    )
+    pool = ModelPool(AGENT_MODELS)
+
+    def make_agent(model: str):
+        return create_agent(
+            model=model,
+            system_prompt=SYSTEM_PROMPT,
+            tools=[write_memory, get_memory],
+            context_schema=Context,
+        )
+
+    agent = make_agent(pool.current)
     author = os.environ.get('AUTHOR', 'unknown')
-    harness = PromptHarness(agent, Context(user_id='1'), model_name=args.model, author=author)
+    harness = PromptHarness(
+        agent, Context(user_id='1'),
+        model_name=pool.current,
+        author=author,
+        pool=pool,
+        agent_factory=make_agent,
+    )
     if args.command == 'category':
         harness.prompt_category(args.category, args.prompts_file, prompt_ids=args.ids)
         return

@@ -6,8 +6,9 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage, HumanMessage
+
+from model_pool import ModelPool, EVALUATOR_MODELS
 
 from schemas import (
     EvaluationResult, EvaluationReport,
@@ -74,9 +75,8 @@ Classify the failure using the taxonomy.
 
 class FailureEvaluator:
 
-    def __init__(self, model: str, taxonomy_path: str, prompts_path: str):
-        self.model_name = model
-        self.llm = init_chat_model(model, temperature=0)
+    def __init__(self, models: list[str], taxonomy_path: str, prompts_path: str, **kwargs):
+        self.pool = ModelPool(models, **kwargs)
         self.taxonomy = Path(taxonomy_path).read_text()
         self.prompts = self._load_prompts(prompts_path)
 
@@ -97,9 +97,9 @@ class FailureEvaluator:
 
     def _call_llm(self, system: str, user: str) -> dict:
         messages = [SystemMessage(content=system), HumanMessage(content=user)]
-        response = self.llm.invoke(messages)
+        response = self.pool.invoke(messages)
         text = response.content
-        logger.debug(f"Raw LLM response: {text!r}")
+        logger.debug(f"Raw LLM response ({self.pool.current}): {text!r}")
         return self._extract_json(text)
 
     @staticmethod
@@ -236,7 +236,7 @@ class FailureEvaluator:
 
         run_stats = {
             "timestamp": datetime.now().isoformat(),
-            "evaluator_model": self.model_name,
+            "evaluator_model": self.pool.current,
             "total": run_total,
             "passed": run_passed,
             "failed": run_failed,
@@ -244,7 +244,7 @@ class FailureEvaluator:
         run_history = existing_run_history + [run_stats]
 
         metadata = {
-            "evaluator_model": self.model_name,
+            "evaluator_model": self.pool.current,
             "timestamp": datetime.now().isoformat(),
             "total": len(all_evals),
             "passed": total_passed,
@@ -270,7 +270,7 @@ class FailureEvaluator:
         total = len(all_evals)
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump({"evaluations": all_evals, "metadata": {
-                "evaluator_model": self.model_name,
+                "evaluator_model": self.pool.current,
                 "timestamp": datetime.now().isoformat(),
                 "total": total,
                 "passed": passed_count,
