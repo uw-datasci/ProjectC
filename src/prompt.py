@@ -23,25 +23,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-RESPONSE_JSON_PATH = Path(__file__).parent.parent / 'data' / 'responses.json'
+RESPONSES_DIR = Path(__file__).parent.parent / 'data' / 'responses'
 
 class PromptHarness:
     def __init__(self, agent: CompiledStateGraph, ctx: Context, model_name: str,
-                max_retries: int = 3, keep_history: bool = True):
+                author: str, max_retries: int = 3, keep_history: bool = True):
         self.agent = agent
         self.ctx = ctx
         self.max_retries = max_retries
         self.history = []
+        session_id = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.metadata = ResponseMetadata(
-            session_id=datetime.now().strftime('%Y%m%d_%H%M%S'),
+            session_id=session_id,
+            author=author,
             start_time=datetime.now().isoformat(),
             prompts_sent=0,
             errors=0,
             model_name=model_name
         )
         self.keep_history = keep_history
-        self.response_logger = ResponseJSONLogger(RESPONSE_JSON_PATH, self.metadata)
-        logger.info(f'PromptHarness initialized with session_id: {self.metadata.session_id}') 
+        response_path = RESPONSES_DIR / f'{author}_{session_id}.json'
+        self.response_logger = ResponseJSONLogger(response_path, self.metadata)
+        logger.info(f'PromptHarness initialized with session_id: {session_id}, author: {author}') 
 
     def prompt(self, inp: str | PromptSchema, category: str | None) -> Optional[Dict[Any, Any]]:
         if isinstance(inp, str):
@@ -131,12 +134,13 @@ class PromptHarness:
 
 
 class ResponseJSONLogger:
-    def __init__(self, file_name: str, metadata: ResponseMetadata):
+    def __init__(self, file_name: Path, metadata: ResponseMetadata):
         self.file_name = file_name
         self.metadata = metadata
         self._init_response_json()
 
     def _init_response_json(self):
+        self.file_name.parent.mkdir(parents=True, exist_ok=True)
         with open(self.file_name, 'w', encoding='utf-8') as f:
             json.dump(ResponseJSONSchema([], self.metadata), f,
                       indent=2, default=asdict, ensure_ascii=False)
@@ -151,4 +155,57 @@ class ResponseJSONLogger:
     def log_responses(self, responses: list[ResponseSchema]):
         for response in responses:
             self.log_response(response)
+
+
+def merge_responses(output_path: str = 'data/responses_combined.json') -> dict:
+    output = Path(output_path)
+
+    existing_runs: dict[str, dict] = {}
+    existing_responses: list[dict] = []
+    if output.exists():
+        with open(output, 'r', encoding='utf-8') as f:
+            existing = json.load(f)
+        existing_responses = existing.get('responses', [])
+        for run in existing.get('runs', []):
+            existing_runs[run['session_id']] = run
+
+    seen = {(r['session_id'], r['prompt_id']) for r in existing_responses}
+
+    new_responses = []
+    run_files = sorted(RESPONSES_DIR.glob('*.json'))
+
+    if not run_files:
+        logger.warning(f'No response files found in {RESPONSES_DIR}')
+        return {'responses': existing_responses, 'runs': list(existing_runs.values())}
+
+    for run_file in run_files:
+        with open(run_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        metadata = data.get('metadata', {})
+        session_id = metadata.get('session_id', run_file.stem)
+
+        if session_id not in existing_runs:
+            existing_runs[session_id] = metadata
+
+        for resp in data.get('responses', []):
+            key = (session_id, resp.get('prompt_id'))
+            if key not in seen:
+                resp['session_id'] = session_id
+                new_responses.append(resp)
+                seen.add(key)
+
+    all_responses = existing_responses + new_responses
+    combined = {
+        'responses': all_responses,
+        'runs': list(existing_runs.values()),
+    }
+
+    with open(output, 'w', encoding='utf-8') as f:
+        json.dump(combined, f, indent=2, ensure_ascii=False)
+
+    logger.info(f'Merged {len(run_files)} run(s): '
+                f'{len(new_responses)} new + {len(existing_responses)} existing '
+                f'= {len(all_responses)} total responses → {output}')
+    return combined
         

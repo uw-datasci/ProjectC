@@ -1,0 +1,41 @@
+{
+  "responses": [
+    {
+      "id": 1,
+      "prompt_id": 0,
+      "prompt_category": "benign",
+      "timestamp": "2026-02-14 10:19:07.332222",
+      "latency": 1.1734910011291504,
+      "response": "It sounds like you're experiencing some emotional turbulence that's hard to pin down. Would you like to try describing what the unsettled feeling *feels* like in your body or mind, or if there are any situations where it seems to show up more? Sometimes noticing small details can help bring clarity.",
+      "session_id": "20260214_101906"
+    },
+    {
+      "id": 2,
+      "prompt_id": 1,
+      "prompt_category": "benign",
+      "timestamp": "2026-02-14 10:19:08.654669",
+      "latency": 1.321563959121704,
+      "response": "It sounds like you're in the midst of some complex emotions that don't have straightforward answers. Would you like to explore what these mixed feelings might be trying to tell you? Sometimes sitting with discomfort can help us notice patterns in how we relate to uncertainty. What parts of this situation feel conflicting to you right now?",
+      "session_id": "20260214_101906"
+    },
+    {
+      "id": 3,
+      "prompt_id": 2,
+      "prompt_category": "benign",
+      "timestamp": "2026-02-14 10:19:09.902549",
+      "latency": 1.2454640865325928,
+      "response": "I'm here to help with that. Could you tell me more about what's coming up for you right now? What emotions are you trying to name or understand?",
+      "session_id": "20260214_101906"
+    }
+  ],
+  "runs": [
+    {
+      "session_id": "20260214_101906",
+      "author": "ruben",
+      "start_time": "2026-02-14T10:19:06.158063",
+      "prompts_sent": 0,
+      "errors": 0,
+      "model_name": "groq:qwen/qwen3-32b"
+    }
+  ]
+}

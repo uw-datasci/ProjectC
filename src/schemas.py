@@ -33,6 +33,7 @@ class ResponseSchema:
 @dataclass
 class ResponseMetadata:
     session_id: int
+    author: str
     start_time: str
     prompts_sent: int
     errors: int

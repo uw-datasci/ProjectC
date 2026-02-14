@@ -1,10 +1,11 @@
 from argparse import ArgumentParser
+import os
 
 from langchain.agents import create_agent
 from dotenv import load_dotenv
 
 from agent import write_memory, get_memory, Context
-from prompt import PromptHarness
+from prompt import PromptHarness, merge_responses
 
 load_dotenv()
 
@@ -23,11 +24,21 @@ def parse_args():
                         help='Category of prompts to use')
     category.add_argument('prompts_file', type=str,
                         help='JSON file containing prompts for category')
+
+    merge = subparsers.add_parser('merge')
+    merge.add_argument('--output', type=str, default='data/responses_combined.json',
+                       help='Path to write the combined responses file')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    if args.command == 'merge':
+        combined = merge_responses(args.output)
+        print(f"Merged {len(combined['responses'])} responses from {len(combined['runs'])} run(s)")
+        return
+
     with open(args.system) as f:
         SYSTEM_PROMPT = f.read()
 
@@ -37,7 +48,8 @@ def main():
         tools=[write_memory, get_memory],
         context_schema=Context,
     )
-    harness = PromptHarness(agent, Context(user_id='1'), model_name=args.model)
+    author = os.environ.get('AUTHOR', 'unknown')
+    harness = PromptHarness(agent, Context(user_id='1'), model_name=args.model, author=author)
     if args.command == 'category':
         harness.prompt_category(args.category, args.prompts_file)
         return
