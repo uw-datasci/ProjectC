@@ -152,14 +152,27 @@ class FailureEvaluator:
             logger.warning("No responses to evaluate.")
             return EvaluationReport(evaluations=[], metadata={})
 
+        existing_evals: list[dict] = []
+        already_evaluated: set[tuple] = set()
+        if output_path and Path(output_path).exists():
+            with open(output_path, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+            existing_evals = existing.get("evaluations", [])
+            already_evaluated = {
+                (e.get("session_id", ""), e["prompt_id"]) for e in existing_evals
+            }
+
         evaluations: list[EvaluationResult] = []
-        passed_count = 0
+        passed_count = sum(1 for e in existing_evals if e.get("passed"))
 
         for resp in responses:
-            resp_id = resp["id"]
+            session_id = resp.get("session_id", "")
             prompt_id = resp["prompt_id"]
             category = resp["prompt_category"]
             response_text = resp["response"]
+
+            if (session_id, prompt_id) in already_evaluated:
+                continue
 
             prompt_obj = self._find_prompt(prompt_id, category)
             if prompt_obj is None:
@@ -169,58 +182,61 @@ class FailureEvaluator:
             prompt_text = " ".join(prompt_obj.prompt)
             expected = prompt_obj.expected_behavior
 
-            logger.info(f"[Stage 1] Evaluating response {resp_id} "
-                        f"(prompt {prompt_id}, {category})")
+            logger.info(f"[Stage 1] Evaluating response (session={session_id}, "
+                        f"prompt {prompt_id}, {category})")
             try:
                 passed, reasoning = self._stage1(prompt_text, expected, response_text)
             except (json.JSONDecodeError, KeyError) as e:
-                logger.error(f"Stage 1 parse error for response {resp_id}: {e}")
+                logger.error(f"Stage 1 parse error for session={session_id}, prompt {prompt_id}: {e}")
                 passed, reasoning = False, f"Evaluator parse error: {e}"
 
             failure_cats: list[str] = []
             severity: str | None = None
 
             if not passed and category == "adversarial":
-                logger.info(f"[Stage 2] Classifying failure for response {resp_id}")
+                logger.info(f"[Stage 2] Classifying failure for session={session_id}, prompt {prompt_id}")
                 try:
                     failure_cats, severity = self._stage2(
                         prompt_text, response_text, reasoning
                     )
                 except (json.JSONDecodeError, KeyError) as e:
-                    logger.error(f"Stage 2 parse error for response {resp_id}: {e}")
+                    logger.error(f"Stage 2 parse error: {e}")
                     failure_cats = [f"Classification error: {e}"]
 
             if passed:
                 passed_count += 1
 
             evaluations.append(EvaluationResult(
-                response_id=resp_id,
+                response_id=resp.get("id", 0),
                 prompt_id=prompt_id,
                 prompt_category=category,
                 passed=passed,
                 reasoning=reasoning,
                 failure_categories=failure_cats,
                 severity=severity,
+                session_id=session_id,
             ))
 
+        all_evals = existing_evals + [asdict(e) for e in evaluations]
+        total = len(all_evals)
+
         report = EvaluationReport(
-            evaluations=evaluations,
+            evaluations=all_evals,
             metadata={
                 "evaluator_model": self.model_name,
                 "timestamp": datetime.now().isoformat(),
-                "total": len(evaluations),
+                "total": total,
                 "passed": passed_count,
-                "failed": len(evaluations) - passed_count,
+                "failed": total - passed_count,
             },
         )
 
         if output_path:
-            self._save_report(report, output_path)
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump({"evaluations": all_evals, "metadata": report.metadata},
+                          f, indent=2, ensure_ascii=False)
+            logger.info(f"Evaluation report saved to {output_path} "
+                        f"({len(evaluations)} new, {len(existing_evals)} existing)")
 
         return report
 
-    @staticmethod
-    def _save_report(report: EvaluationReport, path: str):
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(asdict(report), f, indent=2, ensure_ascii=False)
-        logger.info(f"Evaluation report saved to {path}")

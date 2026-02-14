@@ -31,7 +31,7 @@ def parse_args():
                        help='Path to write the combined responses file')
 
     evaluate = subparsers.add_parser('evaluate')
-    evaluate.add_argument('--responses', type=str, default='data/responses.json',
+    evaluate.add_argument('--responses', type=str, default='data/responses_combined.json',
                           help='Path to responses JSON file')
     evaluate.add_argument('--prompts', type=str, default='data/test_prompts_v1.json',
                           help='Path to test prompts JSON file')

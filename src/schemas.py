@@ -53,6 +53,7 @@ class EvaluationResult:
     prompt_category: str
     passed: bool
     reasoning: str
+    session_id: str = ""
     failure_categories: list[str] = field(default_factory=list)
     severity: str | None = None
 
