@@ -122,12 +122,17 @@ class PromptHarness:
         responses = []
         for i, prompt_obj in enumerate(prompts, 1):
             logger.info(f'Processing prompt {i}/{len(prompts)} in category "{category}"')
-            response = self.prompt(prompt_obj, category)
-            responses.append(response)
+            try:
+                response = self.prompt(prompt_obj, category)
+                responses.append(response)
+            except Exception as e:
+                self.metadata.errors += 1
+                logger.error(f'Prompt {i}/{len(prompts)} failed: {type(e).__name__}: {e}')
+                logger.info(f'Saved {len(responses)} responses so far, continuing...')
             if i < len(prompts):
                 time.sleep(3)
         
-        logger.info(f'Category "{category}" completed: {len(responses)} responses')
+        logger.info(f'Category "{category}" completed: {len(responses)}/{len(prompts)} responses')
         return responses
     
     def get_metadata(self) -> Dict[str, Any]:

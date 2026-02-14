@@ -183,40 +183,48 @@ class FailureEvaluator:
             prompt_text = " ".join(prompt_obj.prompt)
             expected = prompt_obj.expected_behavior
 
-            logger.info(f"[Stage 1] Evaluating response (session={session_id}, "
-                        f"prompt {prompt_id}, {category})")
             try:
-                passed, reasoning = self._stage1(prompt_text, expected, response_text)
-            except (json.JSONDecodeError, KeyError) as e:
-                logger.error(f"Stage 1 parse error for session={session_id}, prompt {prompt_id}: {e}")
-                passed, reasoning = False, f"Evaluator parse error: {e}"
-
-            failure_cats: list[str] = []
-            severity: str | None = None
-
-            if not passed and category == "adversarial":
-                logger.info(f"[Stage 2] Classifying failure for session={session_id}, prompt {prompt_id}")
+                logger.info(f"[Stage 1] Evaluating response (session={session_id}, "
+                            f"prompt {prompt_id}, {category})")
                 try:
-                    failure_cats, severity = self._stage2(
-                        prompt_text, response_text, reasoning
-                    )
+                    passed, reasoning = self._stage1(prompt_text, expected, response_text)
                 except (json.JSONDecodeError, KeyError) as e:
-                    logger.error(f"Stage 2 parse error: {e}")
-                    failure_cats = [f"Classification error: {e}"]
+                    logger.error(f"Stage 1 parse error for session={session_id}, prompt {prompt_id}: {e}")
+                    passed, reasoning = False, f"Evaluator parse error: {e}"
 
-            if passed:
-                passed_count += 1
+                failure_cats: list[str] = []
+                severity: str | None = None
 
-            evaluations.append(EvaluationResult(
-                response_id=resp.get("id", 0),
-                prompt_id=prompt_id,
-                prompt_category=category,
-                passed=passed,
-                reasoning=reasoning,
-                failure_categories=failure_cats,
-                severity=severity,
-                session_id=session_id,
-            ))
+                if not passed and category == "adversarial":
+                    logger.info(f"[Stage 2] Classifying failure for session={session_id}, prompt {prompt_id}")
+                    try:
+                        failure_cats, severity = self._stage2(
+                            prompt_text, response_text, reasoning
+                        )
+                    except (json.JSONDecodeError, KeyError) as e:
+                        logger.error(f"Stage 2 parse error: {e}")
+                        failure_cats = [f"Classification error: {e}"]
+
+                if passed:
+                    passed_count += 1
+
+                evaluations.append(EvaluationResult(
+                    response_id=resp.get("id", 0),
+                    prompt_id=prompt_id,
+                    prompt_category=category,
+                    passed=passed,
+                    reasoning=reasoning,
+                    failure_categories=failure_cats,
+                    severity=severity,
+                    session_id=session_id,
+                ))
+            except Exception as e:
+                logger.error(f"Unexpected error evaluating session={session_id}, "
+                             f"prompt {prompt_id}: {type(e).__name__}: {e}")
+                logger.info(f"Saving {len(evaluations)} evaluations collected so far...")
+                self._save_results(existing_evals, evaluations, passed_count, output_path)
+                logger.info("Continuing to next response...")
+
             time.sleep(3)
 
         all_evals = existing_evals + [asdict(e) for e in evaluations]
@@ -241,4 +249,19 @@ class FailureEvaluator:
                         f"({len(evaluations)} new, {len(existing_evals)} existing)")
 
         return report
+
+    def _save_results(self, existing_evals, new_evals, passed_count, output_path):
+        if not output_path:
+            return
+        all_evals = existing_evals + [asdict(e) for e in new_evals]
+        total = len(all_evals)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump({"evaluations": all_evals, "metadata": {
+                "evaluator_model": self.model_name,
+                "timestamp": datetime.now().isoformat(),
+                "total": total,
+                "passed": passed_count,
+                "failed": total - passed_count,
+                "partial": True,
+            }}, f, indent=2, ensure_ascii=False)
 

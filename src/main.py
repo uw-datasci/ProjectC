@@ -31,6 +31,8 @@ def parse_args():
                        help='Path to write the combined responses file')
 
     evaluate = subparsers.add_parser('evaluate')
+    evaluate.add_argument('--eval-model', type=str, default='groq:llama-3.3-70b-versatile',
+                          help='Model to use for evaluation')
     evaluate.add_argument('--responses', type=str, default='data/responses_combined.json',
                           help='Path to responses JSON file')
     evaluate.add_argument('--prompts', type=str, default='data/test_prompts_v1.json',
@@ -53,7 +55,7 @@ def main():
 
     if args.command == 'evaluate':
         evaluator = FailureEvaluator(
-            model=args.model,
+            model=args.eval_model,
             taxonomy_path=args.taxonomy,
             prompts_path=args.prompts,
         )
