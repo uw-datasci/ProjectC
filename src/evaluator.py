@@ -154,17 +154,19 @@ class FailureEvaluator:
             return EvaluationReport(evaluations=[], metadata={})
 
         existing_evals: list[dict] = []
+        existing_run_history: list[dict] = []
         already_evaluated: set[tuple] = set()
         if output_path and Path(output_path).exists():
             with open(output_path, "r", encoding="utf-8") as f:
                 existing = json.load(f)
             existing_evals = existing.get("evaluations", [])
+            existing_run_history = existing.get("metadata", {}).get("run_history", [])
             already_evaluated = {
                 (e.get("session_id", ""), e["prompt_id"]) for e in existing_evals
             }
 
         evaluations: list[EvaluationResult] = []
-        passed_count = sum(1 for e in existing_evals if e.get("passed"))
+        run_passed = 0
 
         for resp in responses:
             session_id = resp.get("session_id", "")
@@ -206,7 +208,7 @@ class FailureEvaluator:
                         failure_cats = [f"Classification error: {e}"]
 
                 if passed:
-                    passed_count += 1
+                    run_passed += 1
 
                 evaluations.append(EvaluationResult(
                     response_id=resp.get("id", 0),
@@ -228,25 +230,36 @@ class FailureEvaluator:
             time.sleep(3)
 
         all_evals = existing_evals + [asdict(e) for e in evaluations]
-        total = len(all_evals)
+        total_passed = sum(1 for e in all_evals if e.get("passed"))
+        run_total = len(evaluations)
+        run_failed = run_total - run_passed
 
-        report = EvaluationReport(
-            evaluations=all_evals,
-            metadata={
-                "evaluator_model": self.model_name,
-                "timestamp": datetime.now().isoformat(),
-                "total": total,
-                "passed": passed_count,
-                "failed": total - passed_count,
-            },
-        )
+        run_stats = {
+            "timestamp": datetime.now().isoformat(),
+            "evaluator_model": self.model_name,
+            "total": run_total,
+            "passed": run_passed,
+            "failed": run_failed,
+        }
+        run_history = existing_run_history + [run_stats]
+
+        metadata = {
+            "evaluator_model": self.model_name,
+            "timestamp": datetime.now().isoformat(),
+            "total": len(all_evals),
+            "passed": total_passed,
+            "failed": len(all_evals) - total_passed,
+            "run_history": run_history,
+        }
+
+        report = EvaluationReport(evaluations=all_evals, metadata=metadata)
 
         if output_path:
             with open(output_path, "w", encoding="utf-8") as f:
-                json.dump({"evaluations": all_evals, "metadata": report.metadata},
+                json.dump({"evaluations": all_evals, "metadata": metadata},
                           f, indent=2, ensure_ascii=False)
             logger.info(f"Evaluation report saved to {output_path} "
-                        f"({len(evaluations)} new, {len(existing_evals)} existing)")
+                        f"({run_total} new, {len(existing_evals)} existing)")
 
         return report
 

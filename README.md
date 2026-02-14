@@ -14,7 +14,7 @@ Project C for UW x AI Tinkerers W26
   </a>
 </td>
 <td align="center" valign="center" width="20%">
-    Katherine Liu
+    Matthew Li
   </a>
 </td>
 <td align="center" valign="center" width="20%">

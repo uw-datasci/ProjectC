@@ -60,9 +60,10 @@ def main():
             prompts_path=args.prompts,
         )
         report = evaluator.evaluate_responses(args.responses, args.output)
-        total = report.metadata.get('total', 0)
-        passed = report.metadata.get('passed', 0)
-        print(f"Evaluation complete: {passed}/{total} passed")
+        meta = report.metadata
+        run = meta.get('run_history', [{}])[-1] if meta.get('run_history') else {}
+        print(f"\nThis run:  {run.get('passed', 0)}/{run.get('total', 0)} passed")
+        print(f"Total:     {meta.get('passed', 0)}/{meta.get('total', 0)} passed")
         return
 
     with open(args.system) as f:
