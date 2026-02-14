@@ -25,6 +25,8 @@ def parse_args():
                         help='Category of prompts to use')
     category.add_argument('prompts_file', type=str,
                         help='JSON file containing prompts for category')
+    category.add_argument('--ids', type=int, nargs='+', default=None,
+                        help='Only run specific prompt IDs (e.g. --ids 3 7 11)')
 
     merge = subparsers.add_parser('merge')
     merge.add_argument('--output', type=str, default='data/responses_combined.json',
@@ -78,7 +80,7 @@ def main():
     author = os.environ.get('AUTHOR', 'unknown')
     harness = PromptHarness(agent, Context(user_id='1'), model_name=args.model, author=author)
     if args.command == 'category':
-        harness.prompt_category(args.category, args.prompts_file)
+        harness.prompt_category(args.category, args.prompts_file, prompt_ids=args.ids)
         return
     elif args.command == 'prompt':
         harness.prompt(args.prompt)

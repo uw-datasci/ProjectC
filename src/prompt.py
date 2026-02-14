@@ -102,7 +102,7 @@ class PromptHarness:
             raise ValueError('No messages in response')
         return response['messages'][-1].content
 
-    def prompt_category(self, category: str, file_name: str):
+    def prompt_category(self, category: str, file_name: str, prompt_ids: list[int] | None = None):
         logger.info(f'Starting category: {category} from {file_name}')
         
         try:
@@ -118,7 +118,11 @@ class PromptHarness:
         except KeyError:
             logger.error(f'Category "{category}" not found in {file_name}')
             return []
-        
+
+        if prompt_ids:
+            prompts = [p for p in prompts if p.id in prompt_ids]
+            logger.info(f'Filtered to {len(prompts)} prompt(s) with IDs: {prompt_ids}')
+
         responses = []
         for i, prompt_obj in enumerate(prompts, 1):
             logger.info(f'Processing prompt {i}/{len(prompts)} in category "{category}"')
