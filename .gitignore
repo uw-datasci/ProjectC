@@ -2,4 +2,3 @@
 *.log
 .env
 data/responses/
-data/evaluation.json
