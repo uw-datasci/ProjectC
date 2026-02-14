@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from agent import write_memory, get_memory, Context
 from prompt import PromptHarness, merge_responses
+from evaluator import FailureEvaluator
 
 load_dotenv()
 
@@ -28,6 +29,16 @@ def parse_args():
     merge = subparsers.add_parser('merge')
     merge.add_argument('--output', type=str, default='data/responses_combined.json',
                        help='Path to write the combined responses file')
+
+    evaluate = subparsers.add_parser('evaluate')
+    evaluate.add_argument('--responses', type=str, default='data/responses.json',
+                          help='Path to responses JSON file')
+    evaluate.add_argument('--prompts', type=str, default='data/test_prompts_v1.json',
+                          help='Path to test prompts JSON file')
+    evaluate.add_argument('--taxonomy', type=str, default='failure_taxonomy.md',
+                          help='Path to failure taxonomy markdown file')
+    evaluate.add_argument('--output', type=str, default='data/evaluations.json',
+                          help='Path to write evaluation report')
     return parser.parse_args()
 
 
@@ -37,6 +48,19 @@ def main():
     if args.command == 'merge':
         combined = merge_responses(args.output)
         print(f"Merged {len(combined['responses'])} responses from {len(combined['runs'])} run(s)")
+        return
+
+
+    if args.command == 'evaluate':
+        evaluator = FailureEvaluator(
+            model=args.model,
+            taxonomy_path=args.taxonomy,
+            prompts_path=args.prompts,
+        )
+        report = evaluator.evaluate_responses(args.responses, args.output)
+        total = report.metadata.get('total', 0)
+        passed = report.metadata.get('passed', 0)
+        print(f"Evaluation complete: {passed}/{total} passed")
         return
 
     with open(args.system) as f:

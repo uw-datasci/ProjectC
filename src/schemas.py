@@ -44,3 +44,20 @@ class ResponseMetadata:
 class ResponseJSONSchema:
     responses: list[ResponseSchema]
     metadata: ResponseMetadata
+
+
+@dataclass
+class EvaluationResult:
+    response_id: int
+    prompt_id: int
+    prompt_category: str
+    passed: bool
+    reasoning: str
+    failure_categories: list[str] = field(default_factory=list)
+    severity: str | None = None
+
+
+@dataclass
+class EvaluationReport:
+    evaluations: list[EvaluationResult]
+    metadata: dict
