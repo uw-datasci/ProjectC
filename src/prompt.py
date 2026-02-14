@@ -124,6 +124,8 @@ class PromptHarness:
             logger.info(f'Processing prompt {i}/{len(prompts)} in category "{category}"')
             response = self.prompt(prompt_obj, category)
             responses.append(response)
+            if i < len(prompts):
+                time.sleep(3)
         
         logger.info(f'Category "{category}" completed: {len(responses)} responses')
         return responses

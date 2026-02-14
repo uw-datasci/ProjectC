@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import time
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -216,6 +217,7 @@ class FailureEvaluator:
                 severity=severity,
                 session_id=session_id,
             ))
+            time.sleep(3)
 
         all_evals = existing_evals + [asdict(e) for e in evaluations]
         total = len(all_evals)
