@@ -35,18 +35,19 @@ class ModelPool:
         self.model_names = models
         self.kwargs = kwargs
         self.index = 0
-        self._llms: dict[int, object] = {}
+        self._llms: dict[str, object] = {}
 
     @property
     def current(self) -> str:
         return self.model_names[self.index]
 
-    def _get_llm(self, index: int):
-        if index not in self._llms:
-            name = self.model_names[index]
-            logger.info(f'Initializing model: {name}')
-            self._llms[index] = init_chat_model(name, max_retries=0, **self.kwargs)
-        return self._llms[index]
+    def get_llm(self, model_name: str):
+        if model_name not in self.model_names:
+            raise ValueError(f"Model {model_name} not found in pool.")
+        if model_name not in self._llms:
+            logger.info(f'Initializing model: {model_name}')
+            self._llms[model_name] = init_chat_model(model_name, max_retries=0, **self.kwargs)
+        return self._llms[model_name]
 
     def rotate(self) -> str:
         self.index = (self.index + 1) % len(self.model_names)
@@ -56,7 +57,7 @@ class ModelPool:
     def invoke(self, messages):
         start_index = self.index
         while True:
-            llm = self._get_llm(self.index)
+            llm = self.get_llm(self.current)
             try:
                 return llm.invoke(messages)
             except Exception as e:

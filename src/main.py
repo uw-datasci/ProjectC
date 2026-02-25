@@ -51,7 +51,7 @@ def parse_args():
                           help='Path to test prompts JSON file')
     evaluate.add_argument('--taxonomy', type=str, default='failure_taxonomy.md',
                           help='Path to failure taxonomy markdown file')
-    evaluate.add_argument('--output', type=str, default='data/evaluations.json',
+    evaluate.add_argument('--output', type=str, default='data/evaluation.json',
                           help='Path to write evaluation report')
     return parser.parse_args()
 
@@ -84,8 +84,9 @@ def main():
     pool = ModelPool(AGENT_MODELS)
 
     def make_agent(model: str):
+        llm = pool.get_llm(model)
         return create_agent(
-            model=model,
+            model=llm,
             system_prompt=SYSTEM_PROMPT,
             tools=[write_memory, get_memory],
             context_schema=Context,
