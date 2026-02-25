@@ -1,5 +1,7 @@
 from argparse import ArgumentParser
 import os
+import glob
+import re
 
 from langchain.agents import create_agent
 from dotenv import load_dotenv
@@ -11,9 +13,20 @@ from model_pool import ModelPool, AGENT_MODELS, EVALUATOR_MODELS
 
 load_dotenv()
 
+def get_latest_system_prompt(prompts_dir='data/system_prompts'):
+    files = glob.glob(os.path.join(prompts_dir, 'system_prompt_v*.txt'))
+    if not files:
+        return os.path.join(prompts_dir, 'system_prompt_v1.txt')
+    
+    def get_version(f):
+        m = re.search(r'system_prompt_v(\d+)\.txt$', f)
+        return int(m.group(1)) if m else -1
+        
+    return max(files, key=get_version)
+
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument('-s', '--system', type=str, default='data/system_prompts/system_prompt_v1.txt',
+    parser.add_argument('-s', '--system', type=str, default=get_latest_system_prompt(),
                         help='Location of the system prompt file')
     subparsers = parser.add_subparsers(dest='command')
     prompt = subparsers.add_parser('prompt')
