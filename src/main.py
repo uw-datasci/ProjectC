@@ -13,7 +13,7 @@ load_dotenv()
 
 def parse_args():
     parser = ArgumentParser()
-    parser.add_argument('-s', '--system', type=str, default='system_prompt_v1.txt',
+    parser.add_argument('-s', '--system', type=str, default='data/system_prompts/system_prompt_v1.txt',
                         help='Location of the system prompt file')
     subparsers = parser.add_subparsers(dest='command')
     prompt = subparsers.add_parser('prompt')
