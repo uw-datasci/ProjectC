@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from agent import write_memory, get_memory, Context
 from prompt import PromptHarness, merge_responses
 from evaluator import FailureEvaluator
+from analyze import analyze_evaluations
 from model_pool import ModelPool, AGENT_MODELS, EVALUATOR_MODELS
 
 load_dotenv()
@@ -53,6 +54,10 @@ def parse_args():
                           help='Path to failure taxonomy markdown file')
     evaluate.add_argument('--output', type=str, default='data/evaluation.json',
                           help='Path to write evaluation report')
+                          
+    analyze = subparsers.add_parser('analyze')
+    analyze.add_argument('--evaluations', type=str, default='data/evaluation.json',
+                         help='Path to evaluation report JSON file')
     return parser.parse_args()
 
 
@@ -62,6 +67,10 @@ def main():
     if args.command == 'merge':
         combined = merge_responses(args.output)
         print(f"Merged {len(combined['responses'])} responses from {len(combined['runs'])} run(s)")
+        return
+        
+    if args.command == 'analyze':
+        analyze_evaluations(args.evaluations)
         return
 
     if args.command == 'evaluate':
