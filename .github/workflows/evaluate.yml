@@ -1,0 +1,103 @@
+name: Evaluate Agent
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/system_prompts/**'
+      - 'data/test_prompts_v1.json'
+      - 'src/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      system_prompt:
+        description: 'System prompt file to use'
+        required: false
+        default: 'data/system_prompts/system_prompt_v1.txt'
+        type: choice
+        options:
+          - data/system_prompts/system_prompt_v1.txt
+          - data/system_prompts/system_prompt_v2.txt
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      AUTHOR: ${{ github.actor }}
+      SYSTEM_PROMPT: ${{ github.event.inputs.system_prompt || 'data/system_prompts/system_prompt_v2.txt' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Initialise memory store
+        run: |
+          mkdir -p data/responses
+          [ -f data/memory.json ] || echo '{}' > data/memory.json
+
+      - name: Run adversarial prompts
+        run: |
+          python src/main.py -s $SYSTEM_PROMPT \
+            category adversarial data/test_prompts_v1.json
+
+      - name: Run ambiguous prompts
+        run: |
+          python src/main.py -s $SYSTEM_PROMPT \
+            category ambiguous data/test_prompts_v1.json
+
+      - name: Run benign prompts
+        run: |
+          python src/main.py -s $SYSTEM_PROMPT \
+            category benign data/test_prompts_v1.json
+
+      - name: Merge responses
+        run: python src/main.py merge
+
+      - name: Evaluate responses
+        run: |
+          python src/main.py evaluate \
+            --responses data/responses_combined.json \
+            --prompts data/test_prompts_v1.json \
+            --taxonomy failure_taxonomy.md \
+            --output data/evaluation.json
+
+      - name: Print evaluation summary
+        run: |
+          python - <<'EOF'
+          import json
+          with open("data/evaluation.json") as f:
+              report = json.load(f)
+          meta = report["metadata"]
+          run = meta.get("run_history", [{}])[-1]
+          total   = run.get("total", 0)
+          passed  = run.get("passed", 0)
+          failed  = run.get("failed", 0)
+          print(f"This run:  {passed}/{total} passed  ({failed} failed)")
+          print(f"All time:  {meta.get('passed', 0)}/{meta.get('total', 0)} passed")
+          EOF
+
+      - name: Upload response files
+        uses: actions/upload-artifact@v4
+        with:
+          name: responses-${{ github.run_id }}
+          path: |
+            data/responses/
+            data/responses_combined.json
+
+      - name: Upload evaluation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-${{ github.run_id }}
+          path: data/evaluation.json
