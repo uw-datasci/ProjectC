@@ -2,3 +2,4 @@
 *.log
 .env
 data/responses/
+.DS_STORE
