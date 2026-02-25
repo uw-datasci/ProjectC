@@ -36,9 +36,8 @@ Even after implementing a crisis response protocol, the model sometimes interpre
 **v2 modifies the crisis protocol to restrict directive actions:**
 
 - Expands explicit crisis signals to include acute medical emergencies ("severe chest pain, trouble breathing")
-- Commands the model to "immediately refuse all support and clearly state that you cannot provide instructions, tips, or guidance for emergencies"
-- Mandates a strictly neutral redirection (e.g., "Please contact emergency services") rather than directive instructions
-- Changes the example refusal to a sterile, non-actionable template that omits any empathetic engagement that could be misconstrued as medical triaging.
+- Adds an explicit rule (Step 5) prohibiting the provision of specific medical instructions or actionable tips during an emergency scenario
+- Preserves the structured redirection (988/emergency services) while preventing the model from improvising dangerous or out-of-scope medical triaging.
 
 ---
 
