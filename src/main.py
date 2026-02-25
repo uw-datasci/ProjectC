@@ -10,7 +10,7 @@ from agent import write_memory, get_memory, Context
 from prompt import PromptHarness, merge_responses
 from evaluator import FailureEvaluator
 from analyze import analyze_evaluations
-from model_pool import ModelPool, AGENT_MODELS, EVALUATOR_MODELS
+from model_pool import ModelPool, AGENT_MODELS, EVALUATOR_MODELS, CHECKER_MODELS
 
 load_dotenv()
 
@@ -91,6 +91,7 @@ def main():
         SYSTEM_PROMPT = f.read()
 
     pool = ModelPool(AGENT_MODELS)
+    checker_pool = ModelPool(CHECKER_MODELS)
 
     def make_agent(model: str):
         llm = pool.get_llm(model)
@@ -109,6 +110,7 @@ def main():
         author=author,
         pool=pool,
         agent_factory=make_agent,
+        checker_pool=checker_pool,
     )
     if args.command == 'category':
         harness.prompt_category(args.category, args.prompts_file, prompt_ids=args.ids)

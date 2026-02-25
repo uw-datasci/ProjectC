@@ -1,7 +1,11 @@
 import logging
+import os
 import time
+from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,18 @@ EVALUATOR_MODELS = [
     'groq:openai/gpt-oss-safeguard-20b',
 ]
 
+CHECKER_MODELS = [
+    'groq:meta-llama/llama-4-scout-17b-16e-instruct',
+    'groq:llama-3.1-8b-instant',
+    'groq:openai/gpt-oss-safeguard-20b',
+    'groq:moonshotai/kimi-k2-instruct-0905',
+    'groq:llama-3.3-70b-versatile',
+    'groq:openai/gpt-oss-20b',
+    'groq:qwen/qwen3-32b',
+    'groq:meta-llama/llama-4-maverick-17b-128e-instruct',
+    'groq:openai/gpt-oss-120b',
+]
+
 
 class ModelPool:
     def __init__(self, models: list[str], **kwargs):
@@ -46,7 +62,11 @@ class ModelPool:
             raise ValueError(f"Model {model_name} not found in pool.")
         if model_name not in self._llms:
             logger.info(f'Initializing model: {model_name}')
-            self._llms[model_name] = init_chat_model(model_name, max_retries=0, **self.kwargs)
+            api_key = os.environ.get('GROQ_API_KEY')
+            if api_key:
+                self._llms[model_name] = init_chat_model(model_name, api_key=api_key, max_retries=0, **self.kwargs)
+            else:
+                self._llms[model_name] = init_chat_model(model_name, max_retries=0, **self.kwargs)
         return self._llms[model_name]
 
     def rotate(self) -> str:
