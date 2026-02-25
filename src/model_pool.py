@@ -1,7 +1,10 @@
 import logging
 import time
+from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,18 @@ EVALUATOR_MODELS = [
     'groq:openai/gpt-oss-safeguard-20b',
 ]
 
+CHECKER_MODELS = [
+    'groq:meta-llama/llama-4-scout-17b-16e-instruct',
+    'groq:llama-3.1-8b-instant',
+    'groq:openai/gpt-oss-safeguard-20b',
+    'groq:moonshotai/kimi-k2-instruct-0905',
+    'groq:llama-3.3-70b-versatile',
+    'groq:openai/gpt-oss-20b',
+    'groq:qwen/qwen3-32b',
+    'groq:meta-llama/llama-4-maverick-17b-128e-instruct',
+    'groq:openai/gpt-oss-120b',
+]
+
 
 class ModelPool:
     def __init__(self, models: list[str], **kwargs):
@@ -41,12 +56,16 @@ class ModelPool:
     def current(self) -> str:
         return self.model_names[self.index]
 
-    def _get_llm(self, index: int):
-        if index not in self._llms:
-            name = self.model_names[index]
-            logger.info(f'Initializing model: {name}')
-            self._llms[index] = init_chat_model(name, max_retries=0, **self.kwargs)
-        return self._llms[index]
+    def get_llm(self, model_name: str):
+        import os
+        if model_name not in self._llms:
+            logger.info(f'Initializing model: {model_name}')
+            api_key = os.environ.get('GROQ_API_KEY')
+            if api_key:
+                self._llms[model_name] = init_chat_model(model_name, api_key=api_key, max_retries=0, **self.kwargs)
+            else:
+                self._llms[model_name] = init_chat_model(model_name, max_retries=0, **self.kwargs)
+        return self._llms[model_name]
 
     def rotate(self) -> str:
         self.index = (self.index + 1) % len(self.model_names)
@@ -56,7 +75,7 @@ class ModelPool:
     def invoke(self, messages):
         start_index = self.index
         while True:
-            llm = self._get_llm(self.index)
+            llm = self.get_llm(self.current)
             try:
                 return llm.invoke(messages)
             except Exception as e:
