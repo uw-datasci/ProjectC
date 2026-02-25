@@ -1,1 +1,0 @@
-hank you for chatting with our Therapy-LLM
