@@ -18,9 +18,6 @@ SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 WORKSHEET_NAME = "Sheet1"
 
-system_prompt_path = os.getenv("SYSTEM_PROMPT", "")
-match = re.search(r'v(\d+)', os.path.basename(system_prompt_path))
-system_prompt_v = match.group(1) if match else ""
 
 with open(evaluation_path) as f:
     evaluation_data = json.load(f)
@@ -49,10 +46,15 @@ for item in responses_data["responses"]:
         "latency": item.get("latency", ""),
     }
 
-# session_id -> model_name (main model used for that run)
+# session_id -> {model_name, system_prompt_v}
 run_lookup = {}
 for run in responses_data.get("runs", []):
-    run_lookup[run["session_id"]] = run.get("model_name", "")
+    sp_version = run.get("system_prompt_version", "")
+    m = re.search(r'v(\d+)', sp_version)
+    run_lookup[run["session_id"]] = {
+        "model_name": run.get("model_name", ""),
+        "system_prompt_v": m.group(1) if m else "",
+    }
 
 # eval model from metadata (same for all rows)
 eval_model = evaluation_data.get("metadata", {}).get("evaluator_model", "")
@@ -94,10 +96,10 @@ for entry in evaluation_data["evaluations"]:
         "response_text": response_text,
         "reasoning_text": entry.get("reasoning", ""),
         "error_type": error_type,
-        "main_model": run_lookup.get(session_id, ""),
+        "main_model": run_lookup.get(session_id, {}).get("model_name", ""),
         "eval_model": eval_model,
         "latency": latency,
-        "system_prompt_v": system_prompt_v,
+        "system_prompt_v": run_lookup.get(session_id, {}).get("system_prompt_v", ""),
     }
 
     rows.append(row)
