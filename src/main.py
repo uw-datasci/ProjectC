@@ -11,6 +11,7 @@ from agent import write_memory, get_memory, Context
 from prompt import PromptHarness, merge_responses
 from evaluator import FailureEvaluator
 from analyze import analyze_evaluations
+from dashboard import generate_dashboard
 from model_pool import ModelPool, AGENT_MODELS, EVALUATOR_MODELS, CHECKER_MODELS
 
 load_dotenv()
@@ -72,6 +73,12 @@ def parse_args():
                          help='Path to combined responses JSON file')
     analyze.add_argument('--output', type=str, default='data/metrics.json',
                          help='Path to write metrics JSON (default: data/metrics.json)')
+
+    dashboard = subparsers.add_parser('dashboard')
+    dashboard.add_argument('--metrics', type=str, default='data/metrics.json',
+                           help='Path to metrics JSON file (default: data/metrics.json)')
+    dashboard.add_argument('--output', type=str, default='data/dashboard.html',
+                           help='Path to write dashboard HTML (default: data/dashboard.html)')
     return parser.parse_args()
 
 
@@ -87,6 +94,10 @@ def main():
         analyze_evaluations(args.evaluations, args.responses, args.output)
         return
 
+    if args.command == 'dashboard':
+        out = generate_dashboard(args.metrics, args.output)
+        print(f"Dashboard written to {out}")
+        return
     if args.command == 'evaluate':
         evaluator = FailureEvaluator(
             models=EVALUATOR_MODELS,
