@@ -43,7 +43,9 @@ class PromptHarness:
                 author: str, pool: ModelPool | None = None,
                 agent_factory: Callable[[str], CompiledStateGraph] | None = None,
                 checker_pool: ModelPool | None = None,
-                max_retries: int = 3, keep_history: bool = True):
+                max_retries: int = 3, keep_history: bool = True,
+                system_prompt_version: str = "unknown",
+                system_prompt_hash: str = ""):
         self.agent = agent
         self.ctx = ctx
         self.pool = pool
@@ -58,12 +60,16 @@ class PromptHarness:
             start_time=datetime.now().isoformat(),
             prompts_sent=0,
             errors=0,
-            model_name=model_name
+            model_name=model_name,
+            system_prompt_version=system_prompt_version,
+            system_prompt_hash=system_prompt_hash,
         )
         self.keep_history = keep_history
         response_path = RESPONSES_DIR / f'{author}_{session_id}.json'
         self.response_logger = ResponseJSONLogger(response_path, self.metadata)
-        logger.info(f'PromptHarness initialized with session_id: {session_id}, author: {author}') 
+        logger.info(f'PromptHarness initialized with session_id: {session_id}, '
+                    f'author: {author}, prompt_version: {system_prompt_version}, '
+                    f'prompt_hash: {system_prompt_hash}')
 
     def _rotate_agent(self):
         if self.pool and self.agent_factory:
@@ -137,6 +143,7 @@ class PromptHarness:
                         timestamp=str(response_time),
                         latency=latency,
                         response=self.extract_response_content(response).encode('utf-8').decode('utf-8'),
+                        model_name=self.metadata.model_name,
                     ))
                 break
         return response 
