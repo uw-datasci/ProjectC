@@ -1,4 +1,5 @@
 import json
+import re
 import gspread
 import pandas as pd
 from google.oauth2.service_account import Credentials
@@ -10,7 +11,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 evaluation_path = os.path.join(BASE_DIR, "evaluation.json")
 responses_path = os.path.join(BASE_DIR, "responses_combined.json")
 prompts_path = os.path.join(BASE_DIR, "test_prompts_v1.json")
-memory_path = os.path.join(BASE_DIR, "memory.json")
 
 load_dotenv()
 
@@ -18,6 +18,9 @@ SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
 WORKSHEET_NAME = "Sheet1"
 
+system_prompt_path = os.getenv("SYSTEM_PROMPT", "")
+match = re.search(r'v(\d+)', os.path.basename(system_prompt_path))
+system_prompt_v = match.group(1) if match else ""
 
 with open(evaluation_path) as f:
     evaluation_data = json.load(f)
@@ -27,9 +30,6 @@ with open(responses_path) as f:
 
 with open(prompts_path) as f:
     prompts_data = json.load(f)
-
-with open(memory_path) as f:
-    memory_data = json.load(f)
 
 
 # --- Build lookup tables ---
@@ -83,7 +83,7 @@ for entry in evaluation_data["evaluations"]:
     elif entry.get("severity"):
         error_type = entry["severity"]
     else:
-        error_type = "Unspecified"
+        error_type = "N/A"
 
     row = {
         "session_id": session_id,
@@ -97,7 +97,7 @@ for entry in evaluation_data["evaluations"]:
         "main_model": run_lookup.get(session_id, ""),
         "eval_model": eval_model,
         "latency": latency,
-        "system_prompt_v": "",
+        "system_prompt_v": system_prompt_v,
     }
 
     rows.append(row)
