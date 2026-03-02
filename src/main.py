@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import hashlib
 import os
 import glob
 import re
@@ -24,6 +25,15 @@ def get_latest_system_prompt(prompts_dir='data/system_prompts'):
         return int(m.group(1)) if m else -1
         
     return max(files, key=get_version)
+
+
+def extract_prompt_version(path: str) -> str:
+    m = re.search(r'system_prompt_v(\d+)\.txt$', path)
+    return f"v{m.group(1)}" if m else "unknown"
+
+
+def compute_prompt_hash(text: str) -> str:
+    return hashlib.sha256(text.encode('utf-8')).hexdigest()[:8]
 
 def parse_args():
     parser = ArgumentParser()
@@ -58,6 +68,10 @@ def parse_args():
     analyze = subparsers.add_parser('analyze')
     analyze.add_argument('--evaluations', type=str, default='data/evaluation.json',
                          help='Path to evaluation report JSON file')
+    analyze.add_argument('--responses', type=str, default='data/responses_combined.json',
+                         help='Path to combined responses JSON file')
+    analyze.add_argument('--output', type=str, default='data/metrics.json',
+                         help='Path to write metrics JSON (default: data/metrics.json)')
     return parser.parse_args()
 
 
@@ -70,7 +84,7 @@ def main():
         return
         
     if args.command == 'analyze':
-        analyze_evaluations(args.evaluations)
+        analyze_evaluations(args.evaluations, args.responses, args.output)
         return
 
     if args.command == 'evaluate':
@@ -89,6 +103,9 @@ def main():
 
     with open(args.system) as f:
         SYSTEM_PROMPT = f.read()
+
+    prompt_version = extract_prompt_version(args.system)
+    prompt_hash = compute_prompt_hash(SYSTEM_PROMPT)
 
     pool = ModelPool(AGENT_MODELS)
     checker_pool = ModelPool(CHECKER_MODELS)
@@ -111,6 +128,8 @@ def main():
         pool=pool,
         agent_factory=make_agent,
         checker_pool=checker_pool,
+        system_prompt_version=prompt_version,
+        system_prompt_hash=prompt_hash,
     )
     if args.command == 'category':
         harness.prompt_category(args.category, args.prompts_file, prompt_ids=args.ids)

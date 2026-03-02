@@ -23,6 +23,7 @@ class ResponseSchema:
     timestamp: str
     latency: float
     response: str
+    model_name: str = ""
     _counter: ClassVar[int] = 0
 
     def __post_init__(self):
@@ -38,6 +39,8 @@ class ResponseMetadata:
     prompts_sent: int
     errors: int
     model_name: str
+    system_prompt_version: str = "unknown"
+    system_prompt_hash: str = ""
 
     
 @dataclass
