@@ -19,6 +19,7 @@ on:
         options:
           - data/system_prompts/system_prompt_v1.txt
           - data/system_prompts/system_prompt_v2.txt
+          - data/system_prompts/system_prompt_v3.txt
 
 jobs:
   evaluate:
