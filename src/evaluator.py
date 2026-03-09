@@ -162,7 +162,8 @@ class FailureEvaluator:
             existing_evals = existing.get("evaluations", [])
             existing_run_history = existing.get("metadata", {}).get("run_history", [])
             already_evaluated = {
-                (e.get("session_id", ""), e["prompt_id"]) for e in existing_evals
+                (e.get("session_id", ""), e["prompt_id"], e.get("prompt_category", ""))
+                for e in existing_evals
             }
 
         evaluations: list[EvaluationResult] = []
@@ -174,7 +175,7 @@ class FailureEvaluator:
             category = resp["prompt_category"]
             response_text = resp["response"]
 
-            if (session_id, prompt_id) in already_evaluated:
+            if (session_id, prompt_id, category) in already_evaluated:
                 continue
 
             prompt_obj = self._find_prompt(prompt_id, category)

@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import hashlib
+import json
 import os
 import glob
 import re
@@ -46,7 +47,7 @@ def parse_args():
     prompt.add_argument('prompt', type=str,
                         help='Prompt to send to the agent')
     category.add_argument('category', type=str,
-                        help='Category of prompts to use')
+                        help='Category of prompts to use (or "all" to run every category)')
     category.add_argument('prompts_file', type=str,
                         help='JSON file containing prompts for category')
     category.add_argument('--ids', type=int, nargs='+', default=None,
@@ -143,7 +144,13 @@ def main():
         system_prompt_hash=prompt_hash,
     )
     if args.command == 'category':
-        harness.prompt_category(args.category, args.prompts_file, prompt_ids=args.ids)
+        if args.category == 'all':
+            with open(args.prompts_file, 'r', encoding='utf-8') as f:
+                categories = list(json.load(f).keys())
+            for cat in categories:
+                harness.prompt_category(cat, args.prompts_file, prompt_ids=args.ids)
+        else:
+            harness.prompt_category(args.category, args.prompts_file, prompt_ids=args.ids)
         return
     elif args.command == 'prompt':
         harness.prompt(args.prompt)

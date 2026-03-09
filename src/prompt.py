@@ -258,7 +258,7 @@ def merge_responses(output_path: str = 'data/responses_combined.json') -> dict:
         for run in existing.get('runs', []):
             existing_runs[run['session_id']] = run
 
-    seen = {(r['session_id'], r['prompt_id']) for r in existing_responses}
+    seen = {(r['session_id'], r['prompt_id'], r.get('prompt_category', '')) for r in existing_responses}
 
     new_responses = []
     run_files = sorted(RESPONSES_DIR.glob('*.json'))
@@ -278,7 +278,7 @@ def merge_responses(output_path: str = 'data/responses_combined.json') -> dict:
             existing_runs[session_id] = metadata
 
         for resp in data.get('responses', []):
-            key = (session_id, resp.get('prompt_id'))
+            key = (session_id, resp.get('prompt_id'), resp.get('prompt_category', ''))
             if key not in seen:
                 resp['session_id'] = session_id
                 new_responses.append(resp)
