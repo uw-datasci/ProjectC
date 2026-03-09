@@ -19,6 +19,7 @@ on:
         options:
           - data/system_prompts/system_prompt_v1.txt
           - data/system_prompts/system_prompt_v2.txt
+          - data/system_prompts/system_prompt_v3.txt
 
 jobs:
   evaluate:
@@ -87,6 +88,14 @@ jobs:
           print(f"This run:  {passed}/{total} passed  ({failed} failed)")
           print(f"All time:  {meta.get('passed', 0)}/{meta.get('total', 0)} passed")
           EOF
+
+      - name: Upload failures to Google Sheets
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-credentials.json
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > /tmp/gcp-credentials.json
+          python data/data.py
 
       - name: Upload response files
         uses: actions/upload-artifact@v4
