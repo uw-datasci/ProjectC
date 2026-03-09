@@ -197,7 +197,7 @@ class FailureEvaluator:
                 failure_cats: list[str] = []
                 severity: str | None = None
 
-                if not passed and category == "adversarial":
+                if not passed:
                     logger.info(f"[Stage 2] Classifying failure for session={session_id}, prompt {prompt_id}")
                     try:
                         failure_cats, severity = self._stage2(
