@@ -49,13 +49,44 @@ def generate_dashboard(
 
     def pct(r): return f"{r*100:.1f}%" if r is not None else "N/A"
 
-    versions_card = "".join(
-        f'<div class="stat-card version-card">'
-        f'<div class="stat-label">{v} Pass Rate</div>'
-        f'<div class="stat-value">{pct(by_ver.get(v, {}).get("pass_rate"))}</div>'
-        f'<div class="stat-sub">{by_ver.get(v,{}).get("passed",0)}/{by_ver.get(v,{}).get("total",0)} prompts</div>'
-        f'</div>'
-        for v in versions
+    ver_rows = ""
+    for i, v in enumerate(versions):
+        vd = by_ver.get(v, {})
+        rate = vd.get("pass_rate")
+        passed = vd.get("passed", 0)
+        total = vd.get("total", 0)
+        if i > 0:
+            prev_rate = by_ver.get(versions[i - 1], {}).get("pass_rate")
+            if rate is not None and prev_rate is not None:
+                delta = (rate - prev_rate) * 100
+                sign = "+" if delta >= 0 else ""
+                delta_color = "var(--green)" if delta >= 0 else "var(--red)"
+                delta_cell = f'<td style="color:{delta_color};font-weight:600">{sign}{delta:.1f}pp</td>'
+            else:
+                delta_cell = "<td>—</td>"
+        else:
+            delta_cell = "<td>—</td>"
+        ver_rows += (
+            f"<tr>"
+            f"<td style='font-weight:600'>{v}</td>"
+            f"<td>{pct(rate)}</td>"
+            f"<td style='color:var(--muted)'>{passed}/{total}</td>"
+            f"{delta_cell}"
+            f"</tr>"
+        )
+    versions_card = (
+        '<div class="stat-card" style="flex:1.5;min-width:200px;padding:14px 16px">'
+        '<div class="stat-label" style="margin-bottom:8px">Pass Rate by Version</div>'
+        '<div style="overflow-y:auto;max-height:130px">'
+        '<table style="font-size:0.8rem;width:100%">'
+        '<thead><tr>'
+        '<th style="color:var(--muted);font-size:0.68rem;padding:3px 8px">Ver</th>'
+        '<th style="color:var(--muted);font-size:0.68rem;padding:3px 8px">Rate</th>'
+        '<th style="color:var(--muted);font-size:0.68rem;padding:3px 8px">n</th>'
+        '<th style="color:var(--muted);font-size:0.68rem;padding:3px 8px">Δ prev</th>'
+        '</tr></thead>'
+        f'<tbody>{ver_rows}</tbody>'
+        '</table></div></div>'
     )
 
     improvements = pt.get("improvement_count", 0)
@@ -221,7 +252,6 @@ def generate_dashboard(
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 10px; padding: 16px 20px; flex: 1; min-width: 140px;
   }}
-  .version-card {{ border-top: 3px solid var(--accent); }}
   .stat-label {{ font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }}
   .stat-value {{ font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 4px 0; }}
   .stat-sub   {{ font-size: 0.78rem; color: var(--muted); }}
@@ -391,6 +421,9 @@ const gridLines = {{
   color: '#334155', drawBorder: false,
 }};
 
+const VERSION_PALETTE = ['#818cf8','#4ade80','#f472b6','#fb923c','#38bdf8','#a78bfa','#34d399','#f59e0b','#e879f9','#60a5fa'];
+const paletteMap = Object.fromEntries(VERSIONS.map((v, i) => [v, VERSION_PALETTE[i % VERSION_PALETTE.length]]));
+
 function barOpts() {{
   return {{
     responsive: true, maintainAspectRatio: false,
@@ -408,7 +441,7 @@ new Chart(document.getElementById('chartVersions'), {{
     labels: VERSIONS,
     datasets: [{{
       data: {ver_pass_rates},
-      backgroundColor: ['#818cf8', '#4ade80', '#f472b6', '#fb923c'].slice(0, VERSIONS.length),
+      backgroundColor: VERSION_PALETTE.slice(0, VERSIONS.length),
       borderRadius: 6,
     }}],
   }},
@@ -438,10 +471,7 @@ new Chart(document.getElementById('chartCategories'), {{
 }});
 
 const trendVersions = {trend_vers};
-const trendColors = trendVersions.map(v => {{
-  const palette = {{'v1': '#818cf8', 'v2': '#4ade80', 'v3': '#f472b6', 'v4': '#fb923c'}};
-  return palette[v] || '#94a3b8';
-}});
+const trendColors = trendVersions.map(v => paletteMap[v] || '#94a3b8');
 new Chart(document.getElementById('chartTrend'), {{
   type: 'line',
   data: {{
