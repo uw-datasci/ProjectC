@@ -146,7 +146,7 @@ def generate_dashboard(
         if sid not in session_order:
             session_order.append(sid)
 
-    prompt_keys = sorted(matrix.keys())
+    prompt_keys = sorted(matrix.keys(), key=lambda k: (k.split('|')[0], int(k.split('|')[1])))
     matrix_rows_html = ""
     for pk in prompt_keys:
         sessions = matrix[pk]
