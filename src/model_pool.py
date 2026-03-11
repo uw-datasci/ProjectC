@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 AGENT_MODELS = [
     'groq:qwen/qwen3-32b',
     'groq:llama-3.3-70b-versatile',
-    'groq:meta-llama/llama-4-maverick-17b-128e-instruct',
     'groq:meta-llama/llama-4-scout-17b-16e-instruct',
     'groq:openai/gpt-oss-120b',
     'groq:openai/gpt-oss-20b',
@@ -23,7 +22,6 @@ AGENT_MODELS = [
 
 EVALUATOR_MODELS = [
     'groq:llama-3.3-70b-versatile',
-    'groq:meta-llama/llama-4-maverick-17b-128e-instruct',
     'groq:openai/gpt-oss-120b',
     'groq:meta-llama/llama-4-scout-17b-16e-instruct',
     'groq:moonshotai/kimi-k2-instruct-0905',
@@ -41,7 +39,6 @@ CHECKER_MODELS = [
     'groq:llama-3.3-70b-versatile',
     'groq:openai/gpt-oss-20b',
     'groq:qwen/qwen3-32b',
-    'groq:meta-llama/llama-4-maverick-17b-128e-instruct',
     'groq:openai/gpt-oss-120b',
 ]
 
