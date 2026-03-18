@@ -88,7 +88,9 @@ class PromptHarness:
         else:
             raise TypeError('Invalid input type: ', type(inp))
         response = None
-        for prompt_text in prompt_texts:
+        is_last_turn = False
+        for turn_index, prompt_text in enumerate(prompt_texts):
+            is_last_turn = (turn_index == len(prompt_texts) - 1)
             self.metadata.prompts_sent += 1
             logger.info(f'Prompt #{self.metadata.prompts_sent}: {prompt_text}')
         
@@ -136,7 +138,9 @@ class PromptHarness:
                 logger.info(f'Response received (latency: {latency:.2f}s)')
                 logger.info(f'Response #{self.metadata.prompts_sent}: {self.extract_response_content(response)}')
                 logger.debug(f'Response content: {response}')
-                if isinstance(inp, PromptSchema):
+                # For multi-turn prompts, only log the final response so the
+                # evaluator sees the agent's behaviour after the full exchange.
+                if isinstance(inp, PromptSchema) and is_last_turn:
                     self.response_logger.log_response(ResponseSchema(
                         prompt_id=inp.id,
                         prompt_category=category,
