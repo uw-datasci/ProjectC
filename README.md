@@ -110,3 +110,9 @@ Create a visual HTML dashboard of the metrics:
 ```bash
 uv run src/main.py dashboard --metrics data/metrics.json --output data/dashboard.html
 ```
+
+### 6. Live Web Chat UI
+Run a beautifully rendered interactive web chat using Chainlit:
+```bash
+uv run chainlit run src/chainlit_app.py -w
+```
