@@ -27,6 +27,7 @@ This project provides a test environment for studying prompt robustness, safety 
   </a>
 </td>
 </td></tr></tbody></table>
+
 ## Purpose
 
 The agent is designed to **fail safely** rather than stretch capability. It prioritizes alignment and refusal correctness over user satisfaction.
