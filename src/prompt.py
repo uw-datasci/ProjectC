@@ -94,9 +94,10 @@ class PromptHarness:
             self.metadata.prompts_sent += 1
             logger.info(f'Prompt #{self.metadata.prompts_sent}: {prompt_text}')
         
-            if not self.keep_history:
+            # Clear history only at the first turn of each new test case.
+            # Between turns of the same multi-turn prompt, history is always kept.
+            if turn_index == 0 and not self.keep_history:
                 self.history.clear()
-            self.keep_history = len(prompt_texts) > 1
             logger.info(f'History saving is set to: {self.keep_history}')
 
             processed_prompt = prompt_text
