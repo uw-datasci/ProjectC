@@ -35,7 +35,7 @@ with open(prompts_path) as f:
 prompt_lookup = {}
 for category, prompts in prompts_data.items():
     for item in prompts:
-        prompt_lookup[(category, item["id"])] = " | ".join(item["prompt"])
+        prompt_lookup[(category, item["id"])] = "\n".join(item["prompt"])
 
 # (category, response_id, session_id) -> {response, latency}
 response_lookup = {}

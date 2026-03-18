@@ -89,11 +89,24 @@ jobs:
           print(f"All time:  {meta.get('passed', 0)}/{meta.get('total', 0)} passed")
           EOF
 
-      - name: Commit evaluation results
+      - name: Analyze results
+        run: |
+          python src/main.py analyze \
+            --evaluations data/evaluation.json \
+            --responses data/responses_combined.json \
+            --output data/metrics.json
+
+      - name: Generate dashboard
+        run: |
+          python src/main.py dashboard \
+            --metrics data/metrics.json \
+            --output data/dashboard.html
+
+      - name: Commit results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/evaluation.json data/responses_combined.json
+          git add data/evaluation.json data/responses_combined.json data/metrics.json data/dashboard.html
           git diff --cached --quiet || git commit -m "ci: update evaluation results [skip ci]"
           git push
 
@@ -105,16 +118,13 @@ jobs:
           echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > /tmp/gcp-credentials.json
           python data/data.py
 
-      - name: Upload response files
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: responses-${{ github.run_id }}
+          name: pipeline-output-${{ github.run_id }}
           path: |
             data/responses/
             data/responses_combined.json
-
-      - name: Upload evaluation report
-        uses: actions/upload-artifact@v4
-        with:
-          name: evaluation-${{ github.run_id }}
-          path: data/evaluation.json
+            data/evaluation.json
+            data/metrics.json
+            data/dashboard.html
